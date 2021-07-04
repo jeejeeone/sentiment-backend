@@ -20,26 +20,34 @@ import zio.logging.Logging.{info, warn}
 import zio.magic.ZioProvideMagicOps
 
 object SentimentBackend extends App {
-  // Create HTTP route
   val app: HttpApp[SentimentBackend, Nothing] = Http.collectM[Request] {
     request => request match {
       case Method.GET -> Root / "mentions" / "last" / last => {
-        IntervalValue.fromIntervalString(last) match {
+        IntervalValue.withNameOpt(last) match {
           case Some(interval) =>
             ZIO.serviceWith[SentimentService](_.totalMentionCount(interval))
               .map(TotalMentionsResponse(_))
               .map(_.toJson)
               .map(Response.jsonString)
               .catchAll(exc => handleError(request, Some(exc)))
-          case _ => handleError(request, None, s"Invalid input. Use values ${IntervalValue.stringMap.keys.mkString(",")}")
+          case _ => handleError(
+            request,
+            None,
+            s"Invalid input. Use values ${IntervalValue.values.mkString(",")}"
+          )
         }
       }
-      case Method.GET -> Root / "mentions" / "ticker" / ticker =>
-          ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
-            .map(TickerMentionsResponse(ticker, _))
-            .map(_.toJson)
-            .map(Response.jsonString)
-            .catchAll(exc => handleError(request, Some(exc)))
+      case Method.GET -> Root / "mentions" / "ticker" / ticker / "day-interval" / days =>
+        for {
+          //TODO: Very awkward here, make it so that there are no intermediate variables and
+          //      create correspending error responses according to relevant throwable
+         days <- ZIO.effect(days.toInt.min(365).max(0)).orElse(ZIO.succeed(1))
+         response <- ZIO.serviceWith[SentimentService](_.tickerMentions(ticker, days))
+           .map(TickerMentionsResponse(ticker, _))
+           .map(_.toJson)
+           .map(Response.jsonString)
+           .catchAll(exc => handleError(request, Some(exc)))
+        } yield response
     }
   }
 
@@ -47,8 +55,9 @@ object SentimentBackend extends App {
                   exception: Option[Throwable],
                   msg: String = "Failed to process request"): URIO[Logging, UResponse] =
     //TODO: Stacktrace
-    warn(s"Failed to process request: path='${request.url.path.asString}', msg='$msg', exception=$exception") *>
-      generalErrorResponse(msg)
+    warn(
+      s"Failed to process request: " + s"path='${request.url.path.asString}', msg='$msg', exception=$exception"
+    ) *> generalErrorResponse(msg)
 
   val start: URIO[SentimentBackend, ExitCode] =
     for {

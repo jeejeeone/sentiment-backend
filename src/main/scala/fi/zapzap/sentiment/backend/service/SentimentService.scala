@@ -6,8 +6,6 @@ import zio.Task
 
 trait SentimentService {
   def totalMentionCount(interval: IntervalValue): Task[Seq[TotalMentionCount]]
-
-  def tickerMentions(ticker: String): Task[Seq[TickerMentionCount]]
-
+  def tickerMentions(ticker: String, dayInterval: Int): Task[Seq[TickerMentionCount]]
   def connectDb(): Task[Unit]
 }

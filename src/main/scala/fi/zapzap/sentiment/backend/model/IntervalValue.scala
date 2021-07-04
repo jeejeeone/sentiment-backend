@@ -1,16 +1,16 @@
 package fi.zapzap.sentiment.backend.model
 
+import scala.util.Try
+
 object IntervalValue extends Enumeration {
   type IntervalValue = Value
 
-  val TwentyFourHours, SevenDays, ThirtyDays, HundredDays = Value
+  val TwentyFourHours = Value("24hours")
+  val SevenDays = Value("7days")
+  val ThirtyDays = Value("30days")
+  val HundredDays = Value("100days")
 
-  val stringMap = Map(
-    "24hours" -> TwentyFourHours,
-    "7days" -> SevenDays,
-    "30days" -> ThirtyDays,
-    "100days" -> HundredDays
-  )
-
-  def fromIntervalString(value: String): Option[Value] = stringMap.get(value)
+  def withNameOpt(name: String): Option[IntervalValue] = Try {
+    withName(name)
+  }.toOption
 }
