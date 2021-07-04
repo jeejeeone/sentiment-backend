@@ -6,10 +6,10 @@ object IntervalValue extends Enumeration {
   val TwentyFourHours, SevenDays, ThirtyDays, HundredDays = Value
 
   val stringMap = Map(
-    "24 hours" -> TwentyFourHours,
-    "7 days" -> SevenDays,
-    "30 days" -> ThirtyDays,
-    "100 days" -> HundredDays
+    "24hours" -> TwentyFourHours,
+    "7days" -> SevenDays,
+    "30days" -> ThirtyDays,
+    "100days" -> HundredDays
   )
 
   def fromIntervalString(value: String): Option[Value] = stringMap.get(value)

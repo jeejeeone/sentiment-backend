@@ -1,4 +1,4 @@
-package fi.zapzap.sentiment.backend
+package fi.zapzap.sentiment.backend.util
 
 import zio.logging.{LogFormat, LogLevel, Logging}
 

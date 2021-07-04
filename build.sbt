@@ -10,6 +10,7 @@ lazy val scalaTestVersion = "3.2.0-M2"
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % "1.0.8",
   //"dev.zio" %% "zio-streams" % "1.0.8",
+  "io.github.kitlangton" %% "zio-magic" % "0.3.5",
   "dev.zio" %% "zio-config" % "1.0.6",
   "dev.zio" %% "zio-cache" % "0.1.0",
   "dev.zio" %% "zio-json" % "0.1.5",
@@ -19,6 +20,9 @@ libraryDependencies ++= Seq(
 
   "org.scalikejdbc" %% "scalikejdbc" % "3.5.0",
   "org.postgresql" % "postgresql" % "42.2.20",
+
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
 
   "org.scalatest" %% "scalatest-freespec" % scalaTestVersion % "test",
   "org.scalatest" %% "scalatest-mustmatchers" % scalaTestVersion % "test",
