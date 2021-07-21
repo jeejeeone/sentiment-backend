@@ -56,8 +56,8 @@ case class SentimentServiceLive(config: AppConfig,
             )
           ).list().apply()
       }
-
-
+    }
+  
   override def tickerMentions(ticker: String, dayInterval: Int): Task[Seq[TickerMentionCount]] =
     blockingService.effectBlocking {
       DB readOnly { implicit session =>
