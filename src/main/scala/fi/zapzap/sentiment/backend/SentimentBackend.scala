@@ -22,7 +22,7 @@ import zio.magic.ZioProvideMagicOps
 object SentimentBackend extends App {
   val app: HttpApp[SentimentBackend, Nothing] = Http.collectM[Request] {
     request => request match {
-      case Method.GET -> Root / "mentions" / "last" / last => {
+      case Method.GET -> Root / "api" / "ui" / "mentions" / "last" / last =>
         IntervalValue.withNameOpt(last) match {
           case Some(interval) =>
             ZIO.serviceWith[SentimentService](_.totalMentionCount(interval))
@@ -30,14 +30,14 @@ object SentimentBackend extends App {
               .map(_.toJson)
               .map(Response.jsonString)
               .catchAll(exc => handleError(request, Some(exc)))
-          case _ => handleError(
-            request,
-            None,
-            s"Invalid input. Use values ${IntervalValue.values.mkString(",")}"
-          )
+          case _ =>
+            handleError(
+              request,
+              None,
+              s"Invalid input, use values ${IntervalValue.values.mkString(",")}"
+            )
         }
-      }
-      case Method.GET -> Root / "mentions" / "ticker" / ticker / "day-interval" / days =>
+      case Method.GET -> Root / "api" / "ui" / "mentions" / "ticker" / ticker / "day-interval" / days =>
         for {
           //TODO: Very awkward here, make it so that there are no intermediate variables and
           //      create correspending error responses according to relevant throwable
