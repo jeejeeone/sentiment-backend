@@ -37,16 +37,15 @@ object SentimentBackend extends App {
               s"Invalid input, use values ${IntervalValue.values.mkString(",")}"
             )
         }
-      case Method.GET -> Root / "api" / "ui" / "mentions" / "ticker" / ticker / "day-interval" / days =>
+      case Method.GET -> Root / "api" / "ui" / "mentions" / "ticker" / ticker  =>
         for {
           //TODO: Very awkward here, make it so that there are no intermediate variables and
           //      create correspending error responses according to relevant throwable
-         days <- ZIO.effect(days.toInt.min(365).max(0)).orElse(ZIO.succeed(1))
-         response <- ZIO.serviceWith[SentimentService](_.tickerMentions(ticker, days))
-           .map(TickerMentionsResponse(ticker, _))
-           .map(_.toJson)
-           .map(Response.jsonString)
-           .catchAll(exc => handleError(request, Some(exc)))
+          response <- ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
+            .map(TickerMentionsResponse(ticker, _))
+            .map(_.toJson)
+            .map(Response.jsonString)
+            .catchAll(exc => handleError(request, Some(exc)))
         } yield response
     }
   }
@@ -59,12 +58,12 @@ object SentimentBackend extends App {
       s"Failed to process request: " + s"path='${request.url.path.asString}', msg='$msg', exception=$exception"
     ) *> generalErrorResponse(msg)
 
-  val start: URIO[SentimentBackend, ExitCode] =
+  val start: URIO[SentimentBackend, Unit] =
     for {
       _        <- info("Starting sentiment backend")
       _        <- ZIO.serviceWith[SentimentService](_.connectDb()).orDie
-      exitCode <- Server.start(8090, app.silent).exitCode
-    } yield exitCode
+      _        <- Server.start(8090, app.silent).catchAll(_ => info("Failed to start server"))
+    } yield ()
 
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
     start.inject(

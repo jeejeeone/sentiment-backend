@@ -57,7 +57,7 @@ case class SentimentServiceLive(config: AppConfig,
           ).list().apply()
       }
     }
-  
+
   override def tickerMentions(ticker: String, dayInterval: Int): Task[Seq[TickerMentionCount]] =
     blockingService.effectBlocking {
       DB readOnly { implicit session =>
@@ -65,7 +65,7 @@ case class SentimentServiceLive(config: AppConfig,
              SELECT time_bucket('1 day', time) AS date, mention, COUNT(*)
              FROM mentions
              WHERE
-               time > NOW() - interval '${safeSQLSyntax("500days")}'
+               time > NOW() - interval '${safeSQLSyntax(s"${dayInterval}days")}'
              AND
                mention = $ticker
              GROUP BY date, mention
