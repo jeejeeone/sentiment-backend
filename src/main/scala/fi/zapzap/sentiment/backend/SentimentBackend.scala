@@ -5,8 +5,8 @@ import fi.zapzap.sentiment.backend.config.AppConfig
 import fi.zapzap.sentiment.backend.model.IntervalValue
 import fi.zapzap.sentiment.backend.response.GeneralErrorResponse.generalErrorResponse
 import fi.zapzap.sentiment.backend.response.{TickerMentionsResponse, TotalMentionsResponse}
-import fi.zapzap.sentiment.backend.service.SentimentService
-import fi.zapzap.sentiment.backend.service.live.SentimentServiceLive
+import fi.zapzap.sentiment.backend.service.{DatabaseService, SentimentService}
+import fi.zapzap.sentiment.backend.service.live.{DatabaseServiceLive, SentimentServiceLive}
 import fi.zapzap.sentiment.backend.util.Logger.logger
 import zhttp.http._
 import zhttp.service.Server
@@ -61,7 +61,7 @@ object SentimentBackend extends App {
   val start: URIO[SentimentBackend, Unit] =
     for {
       _        <- info("Starting sentiment backend")
-      _        <- ZIO.serviceWith[SentimentService](_.connectDb()).orDie
+      _        <- ZIO.serviceWith[DatabaseService](_.connectDb()).orDie
       _        <- Server.start(8090, app.silent).catchAll(_ => info("Failed to start server"))
     } yield ()
 
@@ -72,14 +72,15 @@ object SentimentBackend extends App {
       logger,
       Console.live,
       AppConfig.layer,
-      SentimentServiceLive.layer
+      SentimentServiceLive.layer,
+      DatabaseServiceLive.layer
     ).exitCode
 }
 
 object Env {
   type LibEnv = Clock with Blocking with Logging with Console
 
-  type AppEnv = Has[SentimentService] with Has[AppConfig]
+  type AppEnv = Has[SentimentService] with Has[AppConfig] with Has[DatabaseService]
 
   type SentimentBackend = LibEnv with AppEnv
 }
