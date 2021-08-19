@@ -3,56 +3,44 @@ package fi.zapzap.sentiment.backend
 import fi.zapzap.sentiment.backend.Env.SentimentBackend
 import fi.zapzap.sentiment.backend.config.AppConfig
 import fi.zapzap.sentiment.backend.model.IntervalValue
-import fi.zapzap.sentiment.backend.response.GeneralErrorResponse.generalErrorResponse
 import fi.zapzap.sentiment.backend.response.{TickerMentionsResponse, TotalMentionsResponse}
-import fi.zapzap.sentiment.backend.service.{DatabaseService, SentimentService}
 import fi.zapzap.sentiment.backend.service.live.{DatabaseServiceLive, SentimentServiceLive}
+import fi.zapzap.sentiment.backend.service.{DatabaseService, SentimentService}
 import fi.zapzap.sentiment.backend.util.Logger.logger
+import fi.zapzap.sentiment.backend.util.SentimentResponse.{toJsonResponse, withDefaultErrorHandling}
 import zhttp.http._
 import zhttp.service.Server
 import zio._
 import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console.Console
-import zio.json.EncoderOps
 import zio.logging.Logging
-import zio.logging.Logging.{info, warn}
+import zio.logging.Logging.info
 import zio.magic.ZioProvideMagicOps
 
 object SentimentBackend extends App {
   val app: HttpApp[SentimentBackend, Nothing] = Http.collectM[Request] {
     request => request match {
       case Method.GET -> Root / "api" / "ui" / "mentions" / "last" / last =>
-        IntervalValue.withNameOpt(last) match {
-          case Some(interval) =>
-            ZIO.serviceWith[SentimentService](_.totalMentionCount(interval))
-              .map(TotalMentionsResponse(_))
-              .map(_.toJson)
-              .map(Response.jsonString)
-              .catchAll(exc => handleError(request, Some(exc)))
-          case _ =>
-            handleError(
-              request,
-              None,
-              s"Invalid input, use values ${IntervalValue.values.mkString(",")}"
-            )
+        // TODO: How to pass implicit request instead of param?
+        withDefaultErrorHandling(request) {
+          IntervalValue.withNameOpt(last) match {
+            case Some(interval) =>
+              ZIO.serviceWith[SentimentService](_.totalMentionCount(interval))
+                .map(TotalMentionsResponse(_))
+                .map(toJsonResponse(_)(TotalMentionsResponse.encoder))
+            case _ =>
+              ZIO.fail(new RuntimeException(s"Invalid input, use values ${IntervalValue.values.mkString(",")}"))
+          }
         }
       case Method.GET -> Root / "api" / "ui" / "mentions" / "ticker" / ticker  =>
-        ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
-          .map(TickerMentionsResponse(ticker, _))
-          .map(_.toJson)
-          .map(Response.jsonString)
-          .catchAll(exc => handleError(request, Some(exc)))
+        withDefaultErrorHandling(request) {
+          ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
+            .map(TickerMentionsResponse(ticker, _))
+            .map(toJsonResponse(_)(TickerMentionsResponse.encoder))
+        }
     }
   }
-
-  def handleError(request: Request,
-                  exception: Option[Throwable],
-                  msg: String = "Failed to process request"): URIO[Logging, UResponse] =
-    //TODO: Stacktrace
-    warn(
-      s"Failed to process request: " + s"path='${request.url.path.asString}', msg='$msg', exception=$exception"
-    ) *> generalErrorResponse(msg)
 
   val start: URIO[SentimentBackend, Unit] =
     for {
