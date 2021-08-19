@@ -38,15 +38,11 @@ object SentimentBackend extends App {
             )
         }
       case Method.GET -> Root / "api" / "ui" / "mentions" / "ticker" / ticker  =>
-        for {
-          //TODO: Very awkward here, make it so that there are no intermediate variables and
-          //      create correspending error responses according to relevant throwable
-          response <- ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
-            .map(TickerMentionsResponse(ticker, _))
-            .map(_.toJson)
-            .map(Response.jsonString)
-            .catchAll(exc => handleError(request, Some(exc)))
-        } yield response
+        ZIO.serviceWith[SentimentService](_.tickerMentions(ticker))
+          .map(TickerMentionsResponse(ticker, _))
+          .map(_.toJson)
+          .map(Response.jsonString)
+          .catchAll(exc => handleError(request, Some(exc)))
     }
   }
 
